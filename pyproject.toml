@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virtual-py-detector"
+version = "0.0.0"
+description = "Advanced virtualization and sandbox environment detection system with multi-layered analysis."
+authors = [
+    { name = "Paopun20", email = "Paopun2026@gmail.com" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Security",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "psutil>=5.9.0",
+    "py-cpuinfo>=9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Paopun20/VirtualPyDetector"
+Documentation = "https://github.com/Paopun20/VirtualPyDetector#readme"
+Repository = "https://github.com/Paopun20/VirtualPyDetector"
+Issues = "https://github.com/Paopun20/VirtualPyDetector/issues"
+
+[project.scripts]
+virtual-py-detect = "VirtualPyDetector:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["LICENSE", "README.md"]
+
+[tool.black]
+line-length = 88
+target-version = ["py38", "py39", "py310", "py311"]

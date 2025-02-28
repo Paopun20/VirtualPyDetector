@@ -1,106 +1,75 @@
-# Virtual-Py Detector
-A Python-based detection tool designed to identify virtual machines, sandboxes, and debuggers. VirtualPy Detector leverages multiple techniques, such as hardware checks, driver detection, anti-debugging mechanisms, and sandbox artifact searches, to prevent execution in restricted or emulated environments.
+# VirtualPyDetector [ VPD ] 🔍
 
-## Features
-- **Virtual Machine Detection**  
-  Detects VMware, VirtualBox, Hyper-V, and QEMU environments.
-- **Sandbox Detection**  
-  Identifies sandbox-specific files and Windows Sandbox installations.
-- **Anti-Debugging**  
-  Detects debuggers using Windows API calls and timing-based techniques.
-- **Suspicious Process Detection**  
-  Monitors for processes like Wireshark, ProcessHacker, and Sandboxie.
-- **Cross-Platform Compatibility**  
-  Works on **Windows** and **Linux** with platform-specific checks.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Requirements
-- **Python 3.6+**
-- Install the following dependencies:
-  ```bash
-  pip install psutil
-  ```
+Advanced virtualization and sandbox environment detection system with multi-layered analysis.
 
-## Installation
-1. **Clone the repository:**  
-   ```bash
-   git clone https://github.com/Paopun20/virtual-py_detector.git
-   cd virtual-py_detector
-   ```
+## Features ✨
 
-2. **Install dependencies:**  
-   ```bash
-   pip install -r requirements.txt
-   ```
+- **Hardware Fingerprinting**  
+  Detect VM-specific hardware signatures
+- **Hypervisor Detection**  
+  Identify presence of VMware, VirtualBox, QEMU, Hyper-V
+- **Timing Analysis**  
+  CPU instruction timing checks using RDTSC
+- **Forensic Artifact Scanning**  
+  Filesystem and registry artifact detection
+- **Behavioral Analysis**  
+  Memory usage patterns and uptime checks
+- **Anti-Evasion Techniques**  
+  Detect hidden processes and core count discrepancies
+- **Multi-Platform Support**  
+  Windows, Linux, and macOS compatibility
 
-## Usage
-Run the VirtualPy Detector to check if the current environment is a virtual machine, sandbox, or debugger:
+## Installation 📦
+
 ```bash
-python virtualpy_detector.py
+pip install pip@git+https://github.com/Paopun20/VirtualPyDetector.git
 ```
 
-### Example Output:
-```
-virtualpy-detector: Detected
-```
-or  
-```
-virtualpy-detector: Not Detected
+## Usage 🚀
+
+### Python Integration
+```python
+from VirtualPyDetector import VirtualPyDetector
+
+detector = VirtualPyDetector()
+if detector.is_virtual_environment:
+    print("Virtual environment detected!")
+else:
+    print("Native environment")
 ```
 
-## Project Structure
-```
-VirtualPy-Detector/
-│
-├── virtualpy_detector.py   # Main detection script
-├── requirements.txt        # Python dependencies
-├── README.md               # Documentation
-└── LICENSE                 # License file (optional)
-└── example.py              # Main example script
-```
+## Detection Methods 🛡️
 
-## How It Works
-VirtualPy Detector runs multiple checks to identify restricted environments:
+| **Technique**               | **Windows** | **Linux**       | **macOS**       | **Description**                                                                 |
+|-----------------------------|-------------|-----------------|-----------------|---------------------------------------------------------------------------------|
+| **Hardware Fingerprinting** | ✔           | ✔               | ✔               | Detects VM-specific hardware (e.g., VMware, VirtualBox, QEMU).                  |
+| **Hypervisor Presence**     | ✔           | ✔               | ✔               | Checks for hypervisor flags in CPUID or system logs.                            |
+| **CPU Timing Analysis**     | ✔           | ✔               | ✔               | Measures CPU instruction timing to detect virtualization anomalies.             |
+| **Driver Signature Check**  | ✔           | ✔               | -               | Scans for virtualization-specific drivers (e.g., `vmmouse.sys`, `vboxguest`).   |
+| **Process Analysis**        | ✔           | ✔               | ✔               | Detects known virtualization processes (e.g., `vmtoolsd`, `vboxservice`).       |
+| **Memory Forensics**        | ✔           | ✔               | ✔               | Analyzes memory usage patterns and swap behavior for virtualization indicators.  |
+| **Anti-Evasion Checks**     | ✔           | ✔               | ✔               | Detects hidden processes, core count discrepancies, and timing inconsistencies.  |
+| **Filesystem Artifacts**    | ✔           | ✔               | ✔               | Scans for virtualization-specific files and directories.                        |
+| **Network Analysis**        | ✔           | ✔               | ✔               | Checks for VM-specific MAC addresses and network configurations.                |
+| **Uptime Analysis**         | ✔           | ✔               | ✔               | Detects suspiciously low system uptime (common in sandboxes).                   |
 
-1. **Hardware Checks:**  
-   Queries system hardware models for virtualization indicators.
-2. **Driver Detection:**  
-   Looks for VirtualBox, VMware, or other virtualization drivers.
-3. **MAC Address Validation:**  
-   Identifies known VM-specific MAC address prefixes.
-4. **Anti-Debugging Mechanisms:**  
-   Uses Windows API to detect debuggers and measures loop timing to identify delays.
-5. **Process Scanning:**  
-   Detects suspicious processes commonly used in sandboxes or forensic tools.
+## Contributing 🤝
 
-## Supported Platforms
-- **Windows 10+**
-- **Linux**
-- **macOS**
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-# Test Status Checklist
-   ## Virtual Machines (VM)
-   - **Windows**
-     - [ ] Windows 10: Test
-     - [ ] Windows 11: Untest
-   - **Linux**
-     - [ ] Linux: Untest
-   - **MacOS**
-     - [ ] MacOS: Untest
-   
-   ## VirtualBox
-   - **Windows**
-     - [ ] Windows 10: Untest
-     - [ ] Windows 11: Untest
-   - **Linux**
-     - [ ] Linux: Untest
-   - **MacOS**
-     - [ ] MacOS: Untest
-   
-   ## Real Machines
-   - **Windows**
-     - [ ] Windows 10: Test
-     - [ ] Windows 11: Untest
-   - **Linux**
-     - [ ] Linux: Untest
-   - **MacOS**
-     - [ ] MacOS: Untest
+## License 📄
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Acknowledgments 🏆
+
+- Inspired by modern anti-malware research
+- Uses [psutil](https://github.com/giampaolo/psutil) for system monitoring
+- Leverages [py-cpuinfo](https://github.com/workhorsy/py-cpuinfo) for CPU analysis

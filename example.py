@@ -1,8 +1,8 @@
-from virtualpy_detector import virtualpydetector
+from VirtualPyDetector import VirtualPyDetector
 
 if __name__ == "__main__":
-    VPD = virtualpydetector()
-    if VPD.detect():
+    VPD = VirtualPyDetector()
+    if VPD.is_virtual_environment:
         print("virtualpy-detector: Detected")
     else:
         print("virtualpy-detector: Not Detected")
