@@ -1,5 +1,4 @@
 name: OH NO, I GET BUG IN SOUP!
-type: issue
 description: 'Report a bug'
 title: "[Bug]: "
 body:
