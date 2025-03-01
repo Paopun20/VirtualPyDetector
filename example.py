@@ -2,7 +2,7 @@ from VirtualPyDetector import VirtualPyDetector
 
 if __name__ == "__main__":
     VPD = VirtualPyDetector()
-    if VPD.is_virtual_environment:
-        print("virtualpy-detector: Detected")
+    if VPD.venv_active:
+        print("VirtualPyDetector: Detected")
     else:
-        print("virtualpy-detector: Not Detected")
+        print("VirtualPyDetector: Not Detected")
