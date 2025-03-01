@@ -1,1 +1,5 @@
 psutil
+typing
+futures
+subprocess.run
+regex

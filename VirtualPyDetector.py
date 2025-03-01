@@ -7,9 +7,12 @@ import platform
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Set
-
 import psutil
 
+class VPDError(Exception):
+    """Base class for exceptions in VirtualPyDetector."""
+    def __init__(self, message):
+        super().__init__(message)
 
 class VirtualPyDetector:
     """
@@ -34,7 +37,9 @@ class VirtualPyDetector:
                     )
                     vm_indicators = ("Virtual", "VMware", "VirtualBox", "Hyper-V", "QEMU")
                     return any(indicator in output for indicator in vm_indicators)
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                except subprocess.CalledProcessError as e:
+                    raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired:
                     return False
 
             elif system == "Darwin":  # macOS
@@ -45,7 +50,22 @@ class VirtualPyDetector:
                         timeout=3
                     )
                     return any(vm in output for vm in ("VMware", "VirtualBox"))
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                except subprocess.CalledProcessError as e:
+                    raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired:
+                    return False
+
+            elif system == "Linux":
+                try:
+                    output = subprocess.check_output(
+                        ["systemd-detect-virt"], 
+                        encoding="utf-8", 
+                        timeout=3
+                    )
+                    return output.strip() != "none"
+                except subprocess.CalledProcessError as e:
+                    raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired:
                     return False
 
             return False
@@ -62,7 +82,9 @@ class VirtualPyDetector:
                 )
                 mac_pattern = r"(00:05:69|00:0C:29|00:50:56|00:1C:14|00:03:FF|00:05:00)"
                 return re.search(mac_pattern, output) is not None
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            except subprocess.CalledProcessError as e:
+                raise VPDError(f"Error checking MAC address: {e}")
+            except subprocess.TimeoutExpired:
                 return False
 
         @staticmethod
@@ -110,9 +132,11 @@ class VirtualPyDetector:
                         timeout=3
                     )
                     return "VMM" in output  # Virtual Machine Monitor flag
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                except subprocess.CalledProcessError as e:
+                    raise VPDError(f"Error checking CPU features: {e}")
+                except subprocess.TimeoutExpired:
                     return False
-
+                
             return False
 
     class DebuggerChecks:
@@ -126,7 +150,7 @@ class VirtualPyDetector:
                     return bool(ctypes.windll.kernel32.IsProcessorFeaturePresent(29))
                 except (AttributeError, OSError):
                     return False
-
+                
             elif platform.system() == "Darwin":
                 try:
                     output = subprocess.check_output(
@@ -135,9 +159,11 @@ class VirtualPyDetector:
                         timeout=3
                     )
                     return "1" in output
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                except subprocess.CalledProcessError as e:
+                    raise VPDError(f"Error checking hypervisor: {e}")
+                except subprocess.TimeoutExpired:
                     return False
-
+                
             return False
 
         @staticmethod
@@ -238,3 +264,146 @@ class VirtualPyDetector:
         ]
 
         return any(detection_checks)
+    
+    @property
+    def is_virtualized(self) -> bool:
+        """
+        Check if the environment is virtualized.
+
+        Returns:
+            bool: True if a virtualized environment is detected, False otherwise.
+        """
+        virtualization_checks = [
+            self.VMChecks.check_vm_hardware(),
+            self.VMChecks.check_mac_address(),
+            self.VMChecks.check_vm_artifacts(),
+            self.VMChecks.check_virtualbox_drivers(),
+            self.VMChecks.check_cpu_features(),
+        ]
+        return any(virtualization_checks)
+
+    @property
+    def is_debugged(self) -> bool:
+        """
+        Check if a debugger is attached to the process.
+
+        Returns:
+            bool: True if a debugger is detected, False otherwise.
+        """
+        debugger_checks = [
+            self.DebuggerChecks.check_hypervisor(),
+            self.DebuggerChecks.detect_debugger(),
+            self.DebuggerChecks.anti_timing_check(),
+        ]
+        return any(debugger_checks)
+
+    @property
+    def is_sandboxed(self) -> bool:
+        """
+        Check if the environment is a sandbox.
+
+        Returns:
+            bool: True if a sandbox environment is detected, False otherwise.
+        """
+        sandbox_checks = [
+            self.DebuggerChecks.check_sandbox_files(),
+            self.ProcessChecks.detect_suspicious_processes(),
+        ]
+        return any(sandbox_checks)
+    
+    @property
+    def is_analyzed(self) -> bool:
+        """
+        Check if the environment is under analysis.
+
+        Returns:
+            bool: True if an analysis environment is detected, False otherwise.
+        """
+        analysis_checks = [
+            self.is_virtualized,
+            self.is_debugged,
+            self.is_sandboxed,
+        ]
+        return any(analysis_checks)
+    
+    @property
+    def is_safe(self) -> bool:
+        """
+        Check if the environment is safe.
+
+        Returns:
+            bool: True if no analysis environment is detected, False otherwise.
+        """
+        return not self.is_analyzed
+    
+    @property
+    def is_unsafe(self) -> bool:
+        """
+        Check if the environment is unsafe.
+
+        Returns:
+            bool: True if an analysis environment is detected, False otherwise.
+        """
+        return self.is_analyzed
+    
+    @property
+    def is_virtual(self) -> bool:
+        """
+        Check if the environment is virtual.
+
+        Returns:
+            bool: True if a virtual environment is detected, False otherwise.
+        """
+        return self.is_virtualized
+    
+    @property
+    def is_debug(self) -> bool:
+        """
+        Check if a debugger is attached to the process.
+
+        Returns:
+            bool: True if a debugger is detected, False otherwise.
+        """
+        return self.is_debugged
+    
+    @property
+    def is_sandbox(self) -> bool:
+        """
+        Check if the environment is a sandbox.
+
+        Returns:
+            bool: True if a sandbox environment is detected, False otherwise.
+        """
+        return self.is_sandboxed
+    
+    @property
+    def is_analysis(self) -> bool:
+        """
+        Check if the environment is under analysis.
+
+        Returns:
+            bool: True if an analysis environment is detected, False otherwise.
+        """
+        return self.is_analyzed
+    
+    @property
+    def get_all_checks(self) -> dict:
+        """
+        Get all checks.
+
+        Returns:
+            dict: All checks.
+        """
+        return {
+            "is_virtualized": self.is_virtualized,
+            "is_debugged": self.is_debugged,
+            "is_sandboxed": self.is_sandboxed,
+            "is_analyzed": self.is_analyzed,
+            "is_safe": self.is_safe,
+            "is_unsafe": self.is_unsafe,
+            "is_virtual": self.is_virtual,
+            "is_debug": self.is_debug,
+            "is_sandbox": self.is_sandbox,
+            "is_analysis": self.is_analysis,
+            "venv_active": self.venv_active,
+        }
