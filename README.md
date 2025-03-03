@@ -30,25 +30,7 @@ Currently, the simplest way to use VirtualPyDetector is to copy `VirtualPyDetect
 
 ## Usage 🚀
 
-Going to your project directory, you can import and use the library like this:
-
-```python
-from VirtualPyDetector import VirtualPyDetector
-
-detector = VirtualPyDetector()
-
-if detector.is_virtualized():
-    print("Virtualized environment detected!")
-else:
-    print("No virtualization detected.")
-
-if detector.is_debugged():
-    print("Debugger detected!")
-else:
-    print("No debugger detected.")
-```
-
-or see this file in [example.py](example.py) for more examples.
+see this file in [example.py](example.py) for more examples.
 
 ## Detection Techniques 🛠️
 
@@ -73,7 +55,3 @@ VPD uses a combination of the following techniques:
 ## Contributing 🤝
 
 Contributions are welcome! Please feel free to submit pull requests or open issues to discuss potential improvements.
-
-## License 📜
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.

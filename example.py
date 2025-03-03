@@ -1,8 +1,8 @@
-from VirtualPyDetector import VirtualPyDetector
+import VirtualPyDetector
 
 if __name__ == "__main__":
     # Create an instance of the VirtualPyDetector class.
-    VPD = VirtualPyDetector()
+    VPD = VirtualPyDetector.Detector()
 
     # Check if any virtualization or debugging indicators are active.
     if VPD.venv_active:

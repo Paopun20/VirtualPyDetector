@@ -17,7 +17,7 @@ class VPDError(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-class VirtualPyDetector:
+class Detector:
     """
     Comprehensive detection system for virtual environments, sandboxes, and debuggers.
     Combines multiple detection techniques across different platforms with multiprocessing.
