@@ -69,6 +69,13 @@ if __name__ == "__main__":
         print("VirtualPyDetector: Analysis")
     else:
         print("VirtualPyDetector: Not Analysis")
-
-    # Print a dictionary containing the results of all checks.
-    print("VirtualPyDetector All Checks: " + str(VPD.get_all_checks))
+        
+    results = VPD.get_all_checks
+    print("Environment Analysis Results:")
+    for key, value in results.items():
+        if key == "detailed":
+            print("\nDetailed Checks:")
+            for dkey, dvalue in value.items():
+                print(f"  {dkey:20}: {dvalue}")
+        else:
+            print(f"{key:20}: {value}")

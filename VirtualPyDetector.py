@@ -7,10 +7,10 @@ import platform
 import subprocess
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from functools import partial
-from typing import List, Set
+from typing import List, Set, Dict
 import psutil
 
-__VERSION__ = "0.0.5"
+__VERSION__ = "0.0.6"
 
 class VPDError(Exception):
     """Base class for exceptions in VirtualPyDetector."""
@@ -233,93 +233,90 @@ class Detector:
                 return any(f.result() for f in as_completed(futures))
 
     class HelperFunctions:
-        """Utility methods supporting detection functionality."""
+        """Enhanced utility methods with error handling."""
         
         @staticmethod
         def check_paths_exist(paths: List[str]) -> bool:
-            """Check if any of the specified paths exist on the filesystem."""
-            return any(os.path.exists(path) for path in paths)
+            """Safely check multiple paths with error handling."""
+            for path in paths:
+                try:
+                    if os.path.exists(path):
+                        return True
+                except PermissionError:
+                    continue
+                except OSError:
+                    continue
+            return False
 
     @property
     def venv_active(self) -> bool:
         """
-        Aggregate all detection checks into a single property using multiprocessing.
-        
-        Returns:
-            bool: True if any virtualization/debugging indicators are found
+        Optimized multiprocess check with batch processing and improved cancellation.
         """
-        check_functions = [
-            self.VMChecks.check_vm_hardware,
-            self.VMChecks.check_mac_address,
-            self.VMChecks.check_vm_artifacts,
-            self.VMChecks.check_virtualbox_drivers,
-            self.VMChecks.check_cpu_features,
-            self.DebuggerChecks.check_hypervisor,
-            self.DebuggerChecks.check_sandbox_files,
-            self.DebuggerChecks.detect_debugger,
-            partial(self.DebuggerChecks.anti_timing_check, threshold=0.5),
-            self.ProcessChecks.detect_suspicious_processes,
+        check_groups = [
+            # Group related checks to minimize process creation
+            [
+                self.VMChecks.check_vm_hardware,
+                self.VMChecks.check_mac_address,
+                self.VMChecks.check_vm_artifacts,
+            ],
+            [
+                self.VMChecks.check_cpu_features,
+                self.DebuggerChecks.check_hypervisor,
+                self.DebuggerChecks.check_sandbox_files,
+            ],
+            [
+                self.DebuggerChecks.detect_debugger,
+                partial(self.DebuggerChecks.anti_timing_check),
+                self.ProcessChecks.detect_suspicious_processes,
+            ]
         ]
 
         try:
-            with ProcessPoolExecutor() as executor:
-                futures = [executor.submit(func) for func in check_functions]
-                results = []
-                for future in as_completed(futures):
-                    results.append(future.result())
-                    if future.result():  # Early exit if any check is True
-                        executor.shutdown(wait=False, cancel_futures=True)
-                        return True
-        except Exception as e:
-            raise VPDError(f"Error during multiprocessed checks: {e}")
+            with ProcessPoolExecutor(max_workers=3) as executor:
+                futures = []
+                for group in check_groups:
+                    futures.append(executor.submit(self._run_check_group, group))
 
-        return any(results)
+                for future in as_completed(futures):
+                    if future.result():
+                        # Cancel remaining checks
+                        for f in futures:
+                            f.cancel()
+                        return True
+                return False
+        except Exception as e:
+            raise VPDError(f"Multiprocess check failed: {e}")
+
+    def _run_check_group(self, checks: List[callable]) -> bool:
+        """Run a group of checks in the current process."""
+        return any(check() for check in checks)
 
     @property
     def is_virtualized(self) -> bool:
-        """
-        Check if the environment is virtualized.
-
-        Returns:
-            bool: True if a virtualized environment is detected, False otherwise.
-        """
-        virtualization_checks = [
+        """Check if the environment is virtualized."""
+        return any((
             self.VMChecks.check_vm_hardware(),
             self.VMChecks.check_mac_address(),
             self.VMChecks.check_vm_artifacts(),
-            self.VMChecks.check_virtualbox_drivers(),
             self.VMChecks.check_cpu_features(),
-        ]
-        return any(virtualization_checks)
+        ))
 
     @property
     def is_debugged(self) -> bool:
-        """
-        Check if a debugger is attached to the process.
-
-        Returns:
-            bool: True if a debugger is detected, False otherwise.
-        """
-        debugger_checks = [
-            self.DebuggerChecks.check_hypervisor(),
+        """Check if a debugger is attached."""
+        return any((
             self.DebuggerChecks.detect_debugger(),
             self.DebuggerChecks.anti_timing_check(),
-        ]
-        return any(debugger_checks)
+        ))
 
     @property
     def is_sandboxed(self) -> bool:
-        """
-        Check if the environment is a sandbox.
-
-        Returns:
-            bool: True if a sandbox environment is detected, False otherwise.
-        """
-        sandbox_checks = [
+        """Check if in a sandbox environment."""
+        return any((
             self.DebuggerChecks.check_sandbox_files(),
             self.ProcessChecks.detect_suspicious_processes(),
-        ]
-        return any(sandbox_checks)
+        ))
     
     @property
     def is_analyzed(self) -> bool:
@@ -329,12 +326,11 @@ class Detector:
         Returns:
             bool: True if an analysis environment is detected, False otherwise.
         """
-        analysis_checks = [
+        return any((
             self.is_virtualized,
             self.is_debugged,
             self.is_sandboxed,
-        ]
-        return any(analysis_checks)
+        ))
     
     @property
     def is_safe(self) -> bool:
@@ -397,23 +393,22 @@ class Detector:
         return self.is_analyzed
     
     @property
-    def get_all_checks(self) -> dict:
-        """
-        Get all checks.
-
-        Returns:
-            dict: All checks.
-        """
+    def get_all_checks(self) -> Dict[str, bool]:
+        """Return comprehensive check results."""
         return {
             "is_virtualized": self.is_virtualized,
             "is_debugged": self.is_debugged,
             "is_sandboxed": self.is_sandboxed,
-            "is_analyzed": self.is_analyzed,
-            "is_safe": self.is_safe,
-            "is_unsafe": self.is_unsafe,
-            "is_virtual": self.is_virtual,
-            "is_debug": self.is_debug,
-            "is_sandbox": self.is_sandbox,
-            "is_analysis": self.is_analysis,
             "venv_active": self.venv_active,
+            "detailed": {
+                "vm_hardware": self.VMChecks.check_vm_hardware(),
+                "vm_mac": self.VMChecks.check_mac_address(),
+                "vm_artifacts": self.VMChecks.check_vm_artifacts(),
+                "cpu_features": self.VMChecks.check_cpu_features(),
+                "hypervisor": self.DebuggerChecks.check_hypervisor(),
+                "sandbox_files": self.DebuggerChecks.check_sandbox_files(),
+                "debugger_present": self.DebuggerChecks.detect_debugger(),
+                "suspicious_processes": self.ProcessChecks.detect_suspicious_processes(),
+                "timing_anomaly": self.DebuggerChecks.anti_timing_check(),
+            }
         }
