@@ -101,7 +101,7 @@ class Detector:
                 "C:\\Program Files\\VMware\\VMware Tools",
                 "C:\\Program Files\\Oracle\\VirtualBox Guest Additions"
             ]
-            return VirtualPyDetector.HelperFunctions.check_paths_exist(vm_paths)
+            return Detector.HelperFunctions.check_paths_exist(vm_paths)
 
         @staticmethod
         def check_virtualbox_drivers() -> bool:
@@ -115,7 +115,7 @@ class Detector:
                 "VBoxSF.sys"
             ]
             driver_paths = [f"C:\\Windows\\System32\\drivers\\{driver}" for driver in drivers]
-            return VirtualPyDetector.HelperFunctions.check_paths_exist(driver_paths)
+            return Detector.HelperFunctions.check_paths_exist(driver_paths)
 
         @staticmethod
         def check_cpu_features() -> bool:
@@ -176,7 +176,7 @@ class Detector:
                 "/Applications/WindowsSandbox.app",  # Hypothetical macOS path
                 "C:\\Program Files\\WindowsApps\\Microsoft.WindowsSandbox_"
             ]
-            return VirtualPyDetector.HelperFunctions.check_paths_exist(sandbox_paths)
+            return Detector.HelperFunctions.check_paths_exist(sandbox_paths)
 
         @staticmethod
         def detect_debugger() -> bool:
