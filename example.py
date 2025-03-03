@@ -1,7 +1,7 @@
-import VirtualPyDetector
+import VirtualPyDetector # load VPD packages
 
 if __name__ == "__main__":
-    # Create an instance of the VirtualPyDetector class.
+    # Create an instance of the Detector class..
     VPD = VirtualPyDetector.Detector()
 
     # Check if any virtualization or debugging indicators are active.

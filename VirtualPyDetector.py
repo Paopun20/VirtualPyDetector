@@ -37,13 +37,13 @@ class Detector:
                         ["wmic", "computersystem", "get", "model"],
                         encoding="utf-8",
                         timeout=3
-                    )
+                        )
+                    
                     vm_indicators = ("Virtual", "VMware", "VirtualBox", "Hyper-V", "QEMU")
+                    
                     return any(indicator in output for indicator in vm_indicators)
-                except subprocess.CalledProcessError as e:
-                    raise VPDError(f"Error checking VM hardware: {e}")
-                except subprocess.TimeoutExpired:
-                    return False
+                except subprocess.CalledProcessError as e: raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired: return False
 
             elif system == "Darwin":  # macOS
                 try:
@@ -52,11 +52,11 @@ class Detector:
                         encoding="utf-8", 
                         timeout=3
                     )
+                    
                     return any(vm in output for vm in ("VMware", "VirtualBox"))
-                except subprocess.CalledProcessError as e:
-                    raise VPDError(f"Error checking VM hardware: {e}")
-                except subprocess.TimeoutExpired:
-                    return False
+                
+                except subprocess.CalledProcessError as e: raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired: return False
 
             elif system == "Linux":
                 try:
@@ -66,11 +66,9 @@ class Detector:
                         timeout=3
                     )
                     return output.strip() != "none"
-                except subprocess.CalledProcessError as e:
-                    raise VPDError(f"Error checking VM hardware: {e}")
-                except subprocess.TimeoutExpired:
-                    return False
-
+                except subprocess.CalledProcessError as e: raise VPDError(f"Error checking VM hardware: {e}")
+                except subprocess.TimeoutExpired: return False
+                
             return False
 
         @staticmethod
@@ -83,37 +81,52 @@ class Detector:
                     encoding="utf-8", 
                     timeout=3
                 )
+                
                 mac_pattern = r"(00:05:69|00:0C:29|00:50:56|00:1C:14|00:03:FF|00:05:00)"
+                
                 return re.search(mac_pattern, output) is not None
-            except subprocess.CalledProcessError as e:
-                raise VPDError(f"Error checking MAC address: {e}")
-            except subprocess.TimeoutExpired:
-                return False
+            
+            except subprocess.CalledProcessError as e: raise VPDError(f"Error checking MAC address: {e}")
+            except subprocess.TimeoutExpired: return False
 
         @staticmethod
         def check_vm_artifacts() -> bool:
             """Check for existence of known virtualization software artifacts."""
-            vm_paths = [
-                # macOS paths
-                "/Applications/VMware Tools",
-                "/Applications/VirtualBox.app",
-                # Windows paths
-                "C:\\Program Files\\VMware\\VMware Tools",
-                "C:\\Program Files\\Oracle\\VirtualBox Guest Additions"
-            ]
-            return Detector.HelperFunctions.check_paths_exist(vm_paths)
+            if platform.system() == "Windows":
+                vm_paths = [
+                    "C:\\Program Files\\VMware\\VMware Tools",
+                    "C:\\Program Files\\Oracle\\VirtualBox Guest Additions"
+                ]
+                return Detector.HelperFunctions.check_paths_exist(vm_paths)
+            elif platform.system() == "Darwin":
+                vm_paths = [
+                    "/Applications/VMware Tools",
+                    "/Applications/VirtualBox.app"
+                ]
+                return Detector.HelperFunctions.check_paths_exist(vm_paths)
+            return False
 
         @staticmethod
         def check_virtualbox_drivers() -> bool:
             """Detect VirtualBox drivers on Windows systems."""
-            if platform.system() != "Windows":
-                return False
+            if platform.system() != "Windows": return False # not windows to be return false
 
             drivers = [
                 "VBoxGuest.sys",
                 "VBoxMouse.sys",
-                "VBoxSF.sys"
+                "VBoxSF.sys",
+                "VBoxVideo.sys",
+                "VBoxNetLwf.sys",
+                "VBoxNetAdp.sys",
+                "VBoxDrv.sys",
+                "VBoxUSBMon.sys",
+                "VBoxUSB.sys",
+                "VBoxWddm.sys",
+                "VBoxMRXNP.sys",
+                "VBoxCdd.sys",
+                "VBoxEhciR0.sys"
             ]
+            
             driver_paths = [f"C:\\Windows\\System32\\drivers\\{driver}" for driver in drivers]
             return Detector.HelperFunctions.check_paths_exist(driver_paths)
 
@@ -124,9 +137,9 @@ class Detector:
                 try:
                     with open("/proc/cpuinfo", "r") as cpuinfo:
                         return any("hypervisor" in line for line in cpuinfo)
-                except FileNotFoundError:
-                    return False
-
+                    
+                except FileNotFoundError: return False
+                
             elif platform.system() == "Darwin":
                 try:
                     output = subprocess.check_output(
@@ -135,10 +148,9 @@ class Detector:
                         timeout=3
                     )
                     return "VMM" in output  # Virtual Machine Monitor flag
-                except subprocess.CalledProcessError as e:
-                    raise VPDError(f"Error checking CPU features: {e}")
-                except subprocess.TimeoutExpired:
-                    return False
+                
+                except subprocess.CalledProcessError as e: raise VPDError(f"Error checking CPU features: {e}")
+                except subprocess.TimeoutExpired: return False
                 
             return False
 
@@ -149,10 +161,8 @@ class Detector:
         def check_hypervisor() -> bool:
             """Detect hypervisor presence using platform-specific APIs."""
             if platform.system() == "Windows":
-                try:
-                    return bool(ctypes.windll.kernel32.IsProcessorFeaturePresent(29))
-                except (AttributeError, OSError):
-                    return False
+                try: return bool(ctypes.windll.kernel32.IsHypervisorPresent())
+                except (AttributeError, OSError): return False
                 
             elif platform.system() == "Darwin":
                 try:
@@ -162,10 +172,9 @@ class Detector:
                         timeout=3
                     )
                     return "1" in output
-                except subprocess.CalledProcessError as e:
-                    raise VPDError(f"Error checking hypervisor: {e}")
-                except subprocess.TimeoutExpired:
-                    return False
+                
+                except subprocess.CalledProcessError as e: raise VPDError(f"Error checking hypervisor: {e}")
+                except subprocess.TimeoutExpired: return False
                 
             return False
 
@@ -222,15 +231,11 @@ class Detector:
             }
 
             def process_check(proc: psutil.Process) -> bool:
-                try:
-                    return proc.info["name"].lower() in suspicious_processes
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    return False
+                try: return proc.info["name"].lower() in suspicious_processes
+                except (psutil.NoSuchProcess, psutil.AccessDenied): return False
 
             with ThreadPoolExecutor() as executor:
-                processes = psutil.process_iter(["name"])
-                futures = [executor.submit(process_check, p) for p in processes]
-                return any(f.result() for f in as_completed(futures))
+                return any(f.result() for f in as_completed([executor.submit(process_check, p) for p in psutil.process_iter(["name"])]))
 
     class HelperFunctions:
         """Enhanced utility methods with error handling."""
@@ -277,14 +282,12 @@ class Detector:
                 futures = []
                 for group in check_groups:
                     futures.append(executor.submit(self._run_check_group, group))
-
                 for future in as_completed(futures):
                     if future.result():
                         # Cancel remaining checks
-                        for f in futures:
-                            f.cancel()
+                        for f in futures: f.cancel()
                         return True
-                return False
+            return False
         except Exception as e:
             raise VPDError(f"Multiprocess check failed: {e}")
 
