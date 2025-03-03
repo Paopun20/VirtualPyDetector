@@ -71,4 +71,4 @@ if __name__ == "__main__":
         print("VirtualPyDetector: Not Analysis")
 
     # Print a dictionary containing the results of all checks.
-    print(VPD.get_all_checks)
+    print("VirtualPyDetector All Checks: " + str(VPD.get_all_checks))

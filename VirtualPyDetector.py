@@ -5,9 +5,12 @@ import time
 import ctypes
 import platform
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from functools import partial
 from typing import List, Set
 import psutil
+
+__VERSION__ = "0.0.1"
 
 class VPDError(Exception):
     """Base class for exceptions in VirtualPyDetector."""
@@ -17,7 +20,7 @@ class VPDError(Exception):
 class VirtualPyDetector:
     """
     Comprehensive detection system for virtual environments, sandboxes, and debuggers.
-    Combines multiple detection techniques across different platforms.
+    Combines multiple detection techniques across different platforms with multiprocessing.
     """
 
     class VMChecks:
@@ -240,31 +243,38 @@ class VirtualPyDetector:
     @property
     def venv_active(self) -> bool:
         """
-        Aggregate all detection checks into a single property.
+        Aggregate all detection checks into a single property using multiprocessing.
         
         Returns:
             bool: True if any virtualization/debugging indicators are found
         """
-        detection_checks = [
-            # Virtualization checks
-            self.VMChecks.check_vm_hardware(),
-            self.VMChecks.check_mac_address(),
-            self.VMChecks.check_vm_artifacts(),
-            self.VMChecks.check_virtualbox_drivers(),
-            self.VMChecks.check_cpu_features(),
-            
-            # Debugger/sandbox checks
-            self.DebuggerChecks.check_hypervisor(),
-            self.DebuggerChecks.check_sandbox_files(),
-            self.DebuggerChecks.detect_debugger(),
-            self.DebuggerChecks.anti_timing_check(),
-            
-            # Process-based checks
-            self.ProcessChecks.detect_suspicious_processes()
+        check_functions = [
+            self.VMChecks.check_vm_hardware,
+            self.VMChecks.check_mac_address,
+            self.VMChecks.check_vm_artifacts,
+            self.VMChecks.check_virtualbox_drivers,
+            self.VMChecks.check_cpu_features,
+            self.DebuggerChecks.check_hypervisor,
+            self.DebuggerChecks.check_sandbox_files,
+            self.DebuggerChecks.detect_debugger,
+            partial(self.DebuggerChecks.anti_timing_check, threshold=0.5),
+            self.ProcessChecks.detect_suspicious_processes,
         ]
 
-        return any(detection_checks)
-    
+        try:
+            with ProcessPoolExecutor() as executor:
+                futures = [executor.submit(func) for func in check_functions]
+                results = []
+                for future in as_completed(futures):
+                    results.append(future.result())
+                    if future.result():  # Early exit if any check is True
+                        executor.shutdown(wait=False, cancel_futures=True)
+                        return True
+        except Exception as e:
+            raise VPDError(f"Error during multiprocessed checks: {e}")
+
+        return any(results)
+
     @property
     def is_virtualized(self) -> bool:
         """
