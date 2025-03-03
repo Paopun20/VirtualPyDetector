@@ -30,7 +30,7 @@ Currently, the simplest way to use VirtualPyDetector is to copy `VirtualPyDetect
 
 ## Usage 🚀
 
-see this file in [example.py](example.py) for more examples.
+see this file in [example.py](example.py) for examples.
 
 ## Detection Techniques 🛠️
 
