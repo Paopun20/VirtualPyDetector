@@ -10,7 +10,7 @@ from functools import partial
 from typing import List, Set
 import psutil
 
-__VERSION__ = "0.0.1"
+__VERSION__ = "0.0.5"
 
 class VPDError(Exception):
     """Base class for exceptions in VirtualPyDetector."""
